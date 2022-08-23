@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd" >
+<configuration>
+
+	<settings>
+		<setting name="jdbcTypeForNull" value="NULL" />
+	</settings>
+	
+	<typeAliases>
+		<typeAlias type="com.br.spring.member.model.vo.Member" alias="Member" />
+		<typeAlias type="com.br.spring.board.model.vo.Board" alias="Board" />
+		<typeAlias type="com.br.spring.board.model.vo.Reply" alias="Reply" />
+	</typeAliases>
+	<!-- 유의사항 : 미리등록해두려면 해당 클래스가 진짜 존재해야됨 -->
+	
+	<!-- 
+		spring 쓰기 전 : 여기에 environment태그로 dataSource(연결할 db정보) 등록
+		spring 사용 후 : root-context.xml 파일에서 dataSource 등록
+	-->
+	
+	<mappers>
+		<mapper resource="/mappers/member-mapper.xml" />
+		<mapper resource="/mappers/board-mapper.xml" />
+	</mappers>
+	<!-- 유의사항 : 미리등록해두려면 해당 mapper 파일이 진짜 존재해야됨 (뿐만아니라 namespace까지도 지정되어있어야됨) -->
+	
+
+</configuration>
