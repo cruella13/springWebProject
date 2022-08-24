@@ -12,6 +12,12 @@
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
 
+<!-- alertify -->
+<script src="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.min.css"/>
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/default.min.css"/>
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/themes/semantic.min.css"/>
+
 <style>
     div{box-sizing: border-box;}
     #header{
@@ -64,6 +70,12 @@
 </head>
 <body>
 
+	<c:if test="${ not empty alertMsg }">
+		<script>
+			alertify.alert("${ alertMsg }");
+		</script>
+		<c:remove var="alertMsg" scope="session" />
+	</c:if>
 	<div id="header">
         <div id="header_1">
             <div id="header_1_left">
@@ -79,7 +91,7 @@
 					<c:otherwise>
 		                <img src="<c:out value='${loginUser.profileImg }' default='resources/profile_images/defaultProfile.png'/>">&nbsp;
 		                <span>${ loginUser.userName }님 환영합니다</span> &nbsp;|&nbsp;
-		                <a href="">마이페이지</a>
+		                <a href="myPage.me">마이페이지</a>
 		                <a href="logout.me">로그아웃</a>
 	                </c:otherwise>
                 </c:choose>

@@ -16,9 +16,12 @@
 	-->
 	<context-param>
 		<param-name>contextConfigLocation</param-name>
-		<param-value>/WEB-INF/spring/root-context.xml</param-value>
+		<param-value>
+		/WEB-INF/spring/root-context.xml
+		/WEB-INF/spring/spring-security.xml
+		</param-value>
 	</context-param>
-	
+		
 	<!-- 
 		* ContextLoaderListener
 		  가장 먼저 로딩(pre-loading) 되어야 하는 xml문서를 읽기 위한 클래스

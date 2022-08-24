@@ -21,23 +21,24 @@ public class MemberServiceImpl implements MemberService {
 		
 		Member loginUser = mDao.loginMember(sqlSession, m);
 		return loginUser;
-		
-		
+			
 	}
 
 	@Override
 	public int insertMember(Member m) {
-		return 0;
+		int result = mDao.insertMember(sqlSession, m);
+		return result;
 	}
 
 	@Override
 	public int updateMember(Member m) {
-		return 0;
+		return mDao.updateMember(sqlSession, m);
 	}
 
 	@Override
 	public int deleteMember(String userId) {
-		return 0;
+		return mDao.deleteMember(sqlSession, userId);
+		
 	}
 
 	@Override
@@ -49,5 +50,6 @@ public class MemberServiceImpl implements MemberService {
 	public int uploadProfileImg(Member m) {
 		return 0;
 	}
+	
 
 }

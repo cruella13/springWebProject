@@ -3,6 +3,7 @@ package com.br.spring.member.controller;
 import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +18,9 @@ public class MemberController {
 
 	@Autowired // DI(Dependency Injection 의존성주입)
 	private MemberService mService;
+	
+	@Autowired
+	private BCryptPasswordEncoder bcryptPasswordEncoder;
 	
 	/*
 	@RequestMapping(value="login.me") // HandlerMapping을 대체해주는 어노테이션
@@ -175,6 +179,7 @@ public class MemberController {
 	@RequestMapping("login.me")
 	public ModelAndView loginMember(Member m, HttpSession session, ModelAndView mv) {
 		
+		/*
 		Member loginUser = mService.loginMember(m);
 		
 		if(loginUser == null) {
@@ -186,6 +191,28 @@ public class MemberController {
 		}
 		
 		return mv;
+		
+		*/
+		
+		// --------- 암호화 과정 후 ----------
+		
+		// Member m userId필드 : 사용자가 입력한 아이디
+		// Member m userPwd필드 : 사용자가 입력한 비밀번호 (평문)
+		
+		Member loginUser = mService.loginMember(m);
+		// loginUser : 오로지 아이디만을 가지고 조회된 회원
+		// loginUser userPwd필드 : db에 기록되어있는 비번 (암호문)
+		
+		if(loginUser != null && bcryptPasswordEncoder.matches(m.getUserPwd(), loginUser.getUserPwd())) { // 로그인 성공
+			session.setAttribute("loginUser", loginUser);
+			mv.setViewName("redirect:/");
+		}else { // 로그인실패
+			mv.addObject("errorMsg", "로그인 실패");
+			mv.setViewName("common/errorPage");
+		}
+		
+		return mv;
+		
 	}
 	
 	@RequestMapping("logout.me")
@@ -203,14 +230,132 @@ public class MemberController {
 	}
 	
 	@RequestMapping("insert.me")
-	public void insertMember(Member m) {
-		System.out.println(m);
+	public String insertMember(Member m, Model model, HttpSession session) {
+		//System.out.println(m);
 		/*
 		 * 1. 나이를 입력하지 않을 경우 400에러 (bad request)
 		 * 	  "" 빈문자열을 int형 필드에 담을 수 없어서 (파싱불가)
 		 * 	  
 		 * 	  => Member 클래스의 age필드를 int형 --> String형
+		 * 
+		 * 2. 비밀번호가 사용자가 입력한 있는 그대로의 평문 
+		 *    => 암호화 적용시켜서 암호문으로 변경 후에 db에 insert
+		 *    
+		 *    		암호화
+		 *    평문 ----------> 암호문
+		 *    평문 <---------- 암호문
+		 *    		복호화
+		 *    
+		 *    1) 단방향암호화 : 암호화만 가능
+		 *    2) 양방향암호화 : 암호화, 복호화 둘 다 가능 (단, 암호를 풀 수 있는 키가 있어야 복호화 가능)
+		 *    
+		 *    옛날 비밀번호 관련 암호화방식 : 양방향암호화
+		 *    		=> 비밀번호 찾기 시 실제 기존의 비밀번호를 알아내서 알려줬었음
+		 *    		=> 복호화가 가능하기 때문에 보안 취약 => 보안정책 바꿨음 (단방향 암호화방식)
+		 *    
+		 *    그 후에 비밀번호 관련 암호화방식 : 단방향암호화 (SHA방식)
+		 *    		=> 절대 평문을 알아낼 수 없다는 장점이 있지만
+		 *    		=> 문제점 : 매 번 똑같은 평문일 경우 똑같은 암호문으로 만들어짐
+		 *    		ex) 1111 => xSDF@ssdf1233452XCDSDF@
+		 *    			1111 => xSDF@ssdf1233452XCDSDF@
+		 *    		=> 샘플데이터가 많이 수집되면 암호문을 가지고 평문을 유추할 수 있는 수준
+		 *    
+		 *    위의 문제를 해결하기 위해 나온게 "솔팅(salting)기법"
+		 *    
+		 *    > 솔팅기법
+		 *    	  <평문> + salt값(랜덤값) ---------> <암호문>
+		 *    	  1111  + 45612		   ---------> @23sdbf3424~@
+		 *    	  1111  + 78923		   ---------> @23ghjghj23!
+		 *    
+		 *    스프링에서 제공하는 BCrypt 방식 : 솔팅기법이 적용된 암호화방식
+		 *    
+		 *    1) pom.xml에 스프링 시큐리티 관련 라이브러리
+		 *    2) BcryptPasswordEncoder 클래스를 빈으로 등록
+		 *    3) web.xml에 spring-security.xml 파일도 pre-loading 되게끔 등록
 		 */
+		
+		//System.out.println("평문 : " + m.getUserPwd());
+		
+		// encode : 암호화해주는 메소드
+		String encPwd = bcryptPasswordEncoder.encode(m.getUserPwd());
+		//System.out.println("암호문 : " + encPwd);
+		
+		m.setUserPwd(encPwd);
+		
+		int result = mService.insertMember(m);
+		
+		if(result > 0) { // 회원가입 성공
+			// sessionScope영역에 alertMsg라는 키값을 "성공적으로 회원가입 되었습니다." 담고 
+			session.setAttribute("alertMsg", "성공적으로 회원가입 되었습니다.");
+			// 메인페이지 url 재요청
+			return "redirect:/";
+		}else { // 회원가입 실패
+			// requestScope영역에 에러문구 담고
+			model.addAttribute("errorMsg", "회원가입 실패");
+			// 에러페이지 포워딩
+			return "common/errorPage";
+			
+		}
+	}
+	
+	@RequestMapping("myPage.me")
+	public String myPage() {
+		return "member/myPage";
+		
+	}
+	
+	@RequestMapping("update.me")
+	public String updateMember(Member m, Model model, HttpSession session) {
+		
+		int result = mService.updateMember(m);
+		
+		if(result > 0) { // 수정 성공
+			
+			// db로부터 갱신된 회원 정보를 다시 조회해와서 session에 담기
+			//Member updateMember = mService.loginMember(m);
+			session.setAttribute("loginUser", mService.loginMember(m));
+			session.setAttribute("alertMsg", "성공적으로 회원정보 변경되었습니다.");
+			
+			// 마이페이지 url재요청
+			return "redirect:myPage.me";
+			
+		}else { // 수정 실패
+			model.addAttribute("errorMsg", "회원정보 변경 실패");
+			return "common/errorPage";
+		}
+		
+	}
+	
+	@RequestMapping("delete.me")
+	public String deleteMember(String userPwd, HttpSession session, Model model) {
+		
+		Member loginUser = (Member)session.getAttribute("loginUser");
+		
+		// userPwd매개변수 : 사용자가 입력한 비번(평문)
+		// loginUser userPwd필드 : 진짜비번 (암호문)
+		
+		if(bcryptPasswordEncoder.matches(userPwd, loginUser.getUserPwd())) {
+			// 비번맞음 => 탈퇴처리
+			int result = mService.deleteMember(loginUser.getUserId());
+			
+			if(result > 0) { // 탈퇴처리성공
+				session.removeAttribute("loginUser");
+				session.setAttribute("alertMsg", "성공적으로 탈퇴되었습니다. 그동안 이용해주셔서 감사합니다.");
+				return "redirect:/";
+				
+			}else {
+				model.addAttribute("errorMsg", "회원 탈퇴 실패");
+				return "common/errorPage";
+			}
+			
+			
+		}else {
+			// 비번틀림 => 비밀번호가 틀림을 알리고 마이페이지 보여지게
+			session.setAttribute("alertMsg", "비밀번호를 잘못 입력했습니다. 확인해주세요.");
+			return "redirect:myPage.me";
+		}
+		
+		
 	}
 }
 
